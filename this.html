@@ -596,7 +596,7 @@ do_A(40); // BOOM
 // GOOD
 var MySingleton = {
     do_A : function (x) {
-        x = Myingleton.do_B(x);
+        x = MySingleton.do_B(x);
         return x - 8;
     },
     do_B : function (x) {
