@@ -202,7 +202,7 @@ getInstanceName(); // returns window.name
 </ul>
 
 <h4 id="apply_invocation"><code>Function.prototype.call</code> and <code>apply</code></h4>
-<p>To further <del>confuse</del> <ins>empower</ins> its developers, JavaScript provides a fourth way of establishing the value of <code>this</code> in functions: <em>Apply invocation</em>.  Apply invocation is accomplished using two <code>Function.prototype</code> methods, <code>call</code> and <code>apply</code>.  They look like this:</p>
+<p>To further <del>confuse</del> <ins>empower</ins> its developers, JavaScript provides a fourth way of establishing the value of <code>this</code> in functions: <em>Apply invocation</em>.  Apply is accomplished using either of two <code>Function.prototype</code> methods, <a href="https://developer.mozilla.org/en/Core_JavaScript_1.5_Reference/Global_Objects/Function/call"><code>call</code></a> or <a href="https://developer.mozilla.org/en/Core_JavaScript_1.5_Reference/Global_Objects/Function/apply"><code>apply</code></a>.  They look like this:</p>
 
 <pre class="code">
 var myObject = { amount : 100 };
@@ -218,7 +218,25 @@ var total = myFunc.apply(myObject, [ 20, 4, 2 ]); // same
 
 <p>The two methods <code>call</code> and <code>apply</code> differ only in signature.  They both take the desired value for <code>this</code> as the first parameter, but after that, <code>call</code> takes individual parameters, where <code>apply</code> takes a single array of parameters.</p>
 
-<p>Since all functions in JavaScript are instances of Function, that means every function has can be executed in this manner, passing <a href="#weird"><em>almost</em></a> any value as <code>this</code>.  That goes for instance methods as well.</p>
+<p>Since all functions in JavaScript are instances of Function, that means every function can be executed in this manner, passing <a href="#weird"><em>almost</em></a> any value as <code>this</code>.  That goes for instance methods as well.</p>
+
+<pre class="code">
+function MyClass(name) {
+    this.name = name;
+}
+MyClass.prototype.getName = function () {
+    alert(this.name);
+};
+
+var instance1 = new MyClass('one'),
+    instance2 = new MyClass('two');
+
+instance1.getName(); // 'one'
+
+instance1.getName.call(instance2); // 'two'
+
+instance1.getName.apply(); // window.name
+</pre>
 
 <h4 id="noimpliedcontext">A function's <code>this</code> is not portable</h4>
 <p>As illustrated with <code>getInstanceName</code> above, functions are first class objects and can be passed around like any other object.  But functions do not carry with them any reference to the object they were grabbed from.  This causes a lot of confusion when attempting to pass around instance methods.</p>
@@ -233,7 +251,7 @@ var instance = new MyClass('foo', [ 1, 2, 3 ]});
 var myString = instance.name; // pass string copy
 var myArray = instance.data; // pass array reference
 
-var myFunc = instance.someFunction; // pass function reference. Does not execute
+var myFunc = instance.someFunction; // pass function reference
 
 var myVal1 = instance.someFunction(); // Executed. instance is this.  myVal1 == 100
 
@@ -242,13 +260,13 @@ var myVal2 = myFunc(); // ???
 
 <p>A common misconception is that since <code>someFunction</code> was defined as a method of the MyClass instance, that executing <code>myFunc()</code> is equivalent to calling <code>instance.someFunction()</code>.</p>
 
-<p>It is not.</p>
+<p><strong>It is not</strong>.</p>
 
-<p>As stated above, when a function is executed, what's to the left of the function name becomes <code>this</code>.</p>
+<p>As stated above, the value of <code>this</code> inside a function is established at the moment of execution and depends on which of the four ways the function was called.</p>
 
 <pre class="code">
-// Nothing to the left, so default to window
-var myVal2 = myFunc(); // BOOM.  this === window, NOT instance
+// Called via Function invocation, so this === window
+var myVal2 = myFunc(); // BOOM.  Were you expecting this to be instance?
 </pre>
 
 <p>The <code>someFunction</code> function may have been initially assigned as a method of our MyClass class, but it's just a dumb function.  It has no allegiance to any object.  <code>this</code> is meaningless in the function body until it is executed.</p>
