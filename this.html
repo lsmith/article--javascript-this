@@ -16,6 +16,9 @@
             border-right: 1ex solid #ccc;
             padding: 2em;
         }
+        del {
+            text-decoration: line-through;
+        }
         .dp-highlighter th,.dp-highlighter td {
             border: none;
             padding: 0;
@@ -127,10 +130,11 @@ var name = myObect.getName();
 <p>This is your standard <acronym title="Object Oriented Programming">OOP</acronym> syntax.   It works pretty much how you expect.  The <code>this</code> inside <code>getName</code> will refer to <code>myObject</code>.</p>
 
 <h4 id="constructor_invocation">Functions as class constructors</h4>
-<p>In JavaScript, classes are indistinguishable from regular functions.  A typical way to create a class in JavaScript is to do something like this:</p>
+<p>In JavaScript, what is commonly thought of as a <em>class</em> is manifest as just another function.  The difference between a class function, or better called a <em>constructor</em> function, is the assumption of the <code>this</code> object in that function being a reference to a new instance of the class.  Typically also the function's prototype object has a number of methods added to it to describe the new class's API.  This usually looks something like this:</p>
+
 <pre class="code">
 function MyClass() { // Upper case first letter by convention
-    this.name = "foo";
+    this.name = "foo"; // assume 'this' is a new instance of MyClass
 }
 MyClass.prototype.getName = function () {
     return this.name;
@@ -142,7 +146,7 @@ var instance3 = new MyClass (); // also works
 var instance2 = new MyClass; // also works
 </pre>
 
-<p>The <code>new</code> prefix causes an instance of the class to be created and provided to the body of the constructor function as the context object (aka <code>this</code>).  This is called <em>Constructor invocation</em>, and is another OOP no-brainer; <code>this</code> is the new instance.</p>
+<p>The <code>new</code> operator causes an instance of the class to be created and provided to the body of the constructor function as the <code>this</code> object.  This is called <em>Constructor invocation</em>, and is another OOP no-brainer; <code>this</code> is the new instance.</p>
 
 <p><code>new</code> resolves whatever is to its right before an opening paren or semicolon.  This can lead to code that looks like a mix of Method invocation and Constructor invocation.  Constructor wins.</p>
 <pre class="code">
@@ -158,7 +162,7 @@ var instance = new DelegateConstructor;
 </pre>
 
 <h4 id="function_invocation">Default context == <code>window</code></h4>
-<p>When there's nothing to the left of a function name at the moment of execution&#8212;that is, no <code><em>myObject.</em>getName()</code> or <code><em>new</em> MyClass(args)</code>&#8212;the global object (<code>window</code>) is used as the value of <code>this</code>.</p>
+<p>When there's nothing to the left of a function name at the moment of execution&#8212;that is, no <code><em>myObject.</em>getName()</code> or <code><em>new</em> MyClass(args)</code>&#8212;the global object (<code>window</code>) is used as the value of <code>this</code> (<a href="#with">with one exception</a>).</p>
 
 <pre class="code">
 &lt;script&gt;
@@ -170,7 +174,7 @@ getName(); // this === window
 &lt;/script&gt;
 </pre>
 
-<p>This is called <em>Function invocation</em>.  The root of many bugs is when a developer expects a function to be called via Method or Constructor invocation, but is in fact called via Function invocation.  Examples of this include forgetting the <code>new</code> prefix before a constructor function call or executing a <a href="#noimpliedcontext">sequestered instance method</a>.</p>
+<p>This is called <em>Function invocation</em>.  The root of many bugs is when a developer expects a function to be called via Method or Constructor invocation, but is in fact called via Function invocation.  Examples of this include forgetting the <code>new</code> operator before a constructor function call or executing a <a href="#noimpliedcontext">sequestered instance method</a>.</p>
 
 <pre class="code">
 function MyClass(name) {
@@ -191,6 +195,23 @@ getInstanceName(); // returns window.name
 
 <p>In these cases, <code>this</code> is believed to reference an object instance, but actually references <code>window</code>, and either a runtime error will result or worse yet, the global environment is modified from that point, and errors don't manifest until later.</p>
 
+<h4 id="with">The <code>with</code> exception</h4>
+
+<p>The <code>with</code> statement can have the effect of making what appears to be a Function invocation actually be a Method invocation.  Names inside a <code>with</code> block are first resolved against the object in the parenthese, and if that object has a property or method with such a name, it is used.  But most importantly for the topic at hand, methods are executed as if called from that object.</p>
+
+<pre class="code">
+myObject.getName = function () {
+    return this.name;
+};
+
+with (myObject) {
+    // this === myObject, even though it looks like Function invocation
+    var name = getName();
+}
+</pre>
+
+<p>But I must emphasize that the use of <code>with</code> <a href="http://yuiblog.com/blog/2006/04/11/with-statement-considered-harmful/">is considered bad practice in JavaScript</a>.  <strong>Don't use it</strong>.</p>
+
 <h3 id="not_so_basics">Establishing <code>this</code> - the not so basics</h3>
 
 <ul>
@@ -202,7 +223,7 @@ getInstanceName(); // returns window.name
 </ul>
 
 <h4 id="apply_invocation"><code>Function.prototype.call</code> and <code>apply</code></h4>
-<p>To further <del>confuse</del> <ins>empower</ins> its developers, JavaScript provides a fourth way of establishing the value of <code>this</code> in functions: <em>Apply invocation</em>.  Apply is accomplished using either of two <code>Function.prototype</code> methods, <a href="https://developer.mozilla.org/en/Core_JavaScript_1.5_Reference/Global_Objects/Function/call"><code>call</code></a> or <a href="https://developer.mozilla.org/en/Core_JavaScript_1.5_Reference/Global_Objects/Function/apply"><code>apply</code></a>.  They look like this:</p>
+<p>To further <del>confuse</del> <ins>empower</ins> its developers, JavaScript provides a fourth way of establishing the value of <code>this</code> in functions: <em>Apply invocation</em>.  Apply invocation is accomplished using two <code>Function.prototype</code> methods, <code>call</code> and <code>apply</code>.  They look like this:</p>
 
 <pre class="code">
 var myObject = { amount : 100 };
@@ -218,25 +239,13 @@ var total = myFunc.apply(myObject, [ 20, 4, 2 ]); // same
 
 <p>The two methods <code>call</code> and <code>apply</code> differ only in signature.  They both take the desired value for <code>this</code> as the first parameter, but after that, <code>call</code> takes individual parameters, where <code>apply</code> takes a single array of parameters.</p>
 
-<p>Since all functions in JavaScript are instances of Function, that means every function can be executed in this manner, passing <a href="#weird"><em>almost</em></a> any value as <code>this</code>.  That goes for instance methods as well.</p>
+<p>Native JavaScript functions as well as any functions you create can be executed in this manner, passing <a href="#weird"><em>almost</em></a> any value as <code>this</code>.  That goes for instance methods as well.</p>
 
 <pre class="code">
-function MyClass(name) {
-    this.name = name;
-}
-MyClass.prototype.getName = function () {
-    alert(this.name);
-};
-
-var instance1 = new MyClass('one'),
-    instance2 = new MyClass('two');
-
-instance1.getName(); // 'one'
-
-instance1.getName.call(instance2); // 'two'
-
-instance1.getName.apply(); // window.name
+myObject.getName.call( myOtherObject ); // this === myOtherObject
 </pre>
+
+<p>It should be noted that all bets are off for DOM object methods (e.g. <code>element.appendChild(..)</code>) and other methods implemented by the browser environment that aren't described in the ECMAScript specification (such as <code>alert(...)</code> or <code>setTimeout(...)</code>).</p>
 
 <h4 id="noimpliedcontext">A function's <code>this</code> is not portable</h4>
 <p>As illustrated with <code>getInstanceName</code> above, functions are first class objects and can be passed around like any other object.  But functions do not carry with them any reference to the object they were grabbed from.  This causes a lot of confusion when attempting to pass around instance methods.</p>
@@ -251,7 +260,7 @@ var instance = new MyClass('foo', [ 1, 2, 3 ]});
 var myString = instance.name; // pass string copy
 var myArray = instance.data; // pass array reference
 
-var myFunc = instance.someFunction; // pass function reference
+var myFunc = instance.someFunction; // pass function reference. Does not execute
 
 var myVal1 = instance.someFunction(); // Executed. instance is this.  myVal1 == 100
 
@@ -260,13 +269,13 @@ var myVal2 = myFunc(); // ???
 
 <p>A common misconception is that since <code>someFunction</code> was defined as a method of the MyClass instance, that executing <code>myFunc()</code> is equivalent to calling <code>instance.someFunction()</code>.</p>
 
-<p><strong>It is not</strong>.</p>
+<p>It is not.</p>
 
-<p>As stated above, the value of <code>this</code> inside a function is established at the moment of execution and depends on which of the four ways the function was called.</p>
+<p>As stated above, when a function is executed, what's to the left of the function name becomes <code>this</code>.</p>
 
 <pre class="code">
-// Called via Function invocation, so this === window
-var myVal2 = myFunc(); // BOOM.  Were you expecting this to be instance?
+// Nothing to the left, so default to window
+var myVal2 = myFunc(); // BOOM.  this === window, NOT instance
 </pre>
 
 <p>The <code>someFunction</code> function may have been initially assigned as a method of our MyClass class, but it's just a dumb function.  It has no allegiance to any object.  <code>this</code> is meaningless in the function body until it is executed.</p>
@@ -286,7 +295,7 @@ var instance2 = new MyOtherClass("bar");
 alert(instance2.someFunction()); // 200
 </pre>
 
-<p>...calling the stolen <code>someFunction</code> from the instance of the new class via Method invocation will pass <code>instance2</code> as the context object for <code>this</code>.  And what do you know, <code>instance2</code> has a <code>data</code> property as well, so the function works like a champ!</p>
+<p>...calling the stolen <code>someFunction</code> from the instance of the new class via Method invocation will pass <code>instance2</code> as the <code>this</code> object for <code>this</code>.  And what do you know, <code>instance2</code> has a <code>data</code> property as well, so the function works like a champ!</p>
 
 <p>Functions are not intrinsically bound to any object, so references to <code>this</code> in the function body are not guaranteed to be an instance of your class.</p>
 
@@ -308,15 +317,17 @@ var button = document.getElementById('the_button');
 button.onclick = instance.getValue; // &lt;-- BAD
 </pre>
 
+<p>What happens in the onclick assignment is that the right hand side of the operation is evaluated, and the resulting value is assigned to the variable named in the left hand side.  So <code>instance.getValue</code> is resolved to a function object (leaving <code>instance</code> behind), and that standalone function is assigned to the onclick property.</p>
+
 <p>When the button is clicked, the function <code>getValue</code> will be executed, but its relation to <code>instance</code> is forgotten.  As described <a href="#domevents">below</a>, inside the function body, <code>this</code> will refer to the button element.</p>
 
 <h4 id="domevents">DOM event handlers</h4>
 <p>There are three ways to attach DOM event handlers to elements:</p>
 
 <ol>
-    <li>HTML attribute</li>
-    <li>Element property</li>
-    <li>DOM Event model API</li>
+    <li>HTML attribute - <code>&lt;input type="button" onclick="doSomething()" value="go"&gt;</code></li>
+    <li>Element property - <code>button.onclick = doSomething;</code></li>
+    <li>DOM Event model API - <code>button.addEventListener("click",doSomething,false);</code></li>
 </ol>
 
 <p><em>Most</em> of them set <code>this</code> to the element whose event you subscribed to.</p>
@@ -371,7 +382,7 @@ function eventListener(e) {
 </ol>
 
 <h5 id="that">Storing <code>this</code> for use in nested functions</h5>
-<p><code>this</code> should not be mistaken for a variable.  Variables are declared by the code author, but <code>this</code> is an <em>expression</em> that returns a distinct, read only value inside every function.  Variables can be used in closures, but <code>this</code> will be unique for every function, including nested functions.</p>
+<p><code>this</code> should not be mistaken for a variable.  Variables are declared by the code author, but <code>this</code> is assigned automatically, and can't be reassigned in the function body.  Variables can be used in closures, but a new <code>this</code> is assigned to every function, including nested functions.</p>
 
 <pre class="code">
 function XHR(domain) {
@@ -663,8 +674,8 @@ var oops = Student('Jane','Physics'); // silent BOOM! window.name and focus meth
 // GOOD
 function Student(name, focus) {
     // if this is anything but a Student instance, we correct to use new
-    if (!(this instanceof arguments.callee)) {
-        return new arguments.callee(name,focus);
+    if (!(this instanceof Student)) {
+        return new Student(name,focus);
     }
     this.name = name;
     this.focus = focus;
@@ -675,7 +686,7 @@ var oops = Student('Rod','Geometry'); // Still OK
 </pre>
 
 <h4 id="intializer">The value of initializer methods</h4>
-<p>Initializers make for easier class extension, or run time class behavior modification since you can't change constructor code without creating an entirely new class function.</p>
+<p>Initializers make for easier class extension, in-production maintenance, or run time class behavior modification since you can't change constructor code without creating an entirely new class constructor function.</p>
 
 <pre class="code">
 // BAD
@@ -790,7 +801,7 @@ if (myVar = someValue) {
 
 <p>JSLint will catch such errors, and save you a lot of headaches.  It may also hurt your feelings, but at least your code will benefit.</p>
 
-<h3>Summary</h3>
+<h3 id="summary">Summary</h3>
 <p>Programmers of classical languages are used to seeing <code>this</code> in object methods as a reference to the current class instance.  JavaScript uses <code>this</code> more broadly, so that assumption can get you into trouble.  In fact, in JavaScript there is <a href="#available">always an available <code>this</code></a>, and <a href="#fourways">four ways</a> to affect the value in it.  Here is a quick run down of things to keep in mind with regards to <code>this</code>:</p>
 
 <ol>
